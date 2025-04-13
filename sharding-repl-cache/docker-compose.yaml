@@ -20,7 +20,7 @@ services:
     volumes:
       - data1_a:/data/db
     networks:
-      - mongo-network         
+      - mongo-network
 
   shard1-b:
     container_name: shard1-b
@@ -42,7 +42,7 @@ services:
     volumes:
       - data1_b:/data/db
     networks:
-      - mongo-network           
+      - mongo-network
 
   shard1-c:
     container_name: shard1-c
@@ -64,7 +64,7 @@ services:
     volumes:
       - data1_c:/data/db
     networks:
-      - mongo-network    
+      - mongo-network
 
   shard2-a:
     container_name: shard2-a
@@ -108,7 +108,7 @@ services:
     volumes:
       - data2_b:/data/db
     networks:
-      - mongo-network                
+      - mongo-network
 
   shard2-c:
     container_name: shard2-c
@@ -130,7 +130,7 @@ services:
     volumes:
       - data2_c:/data/db
     networks:
-      - mongo-network   
+      - mongo-network
 
   configSrv1:
     container_name: configSrv1
@@ -141,7 +141,7 @@ services:
         "--replSet", "config_server",
         "--bind_ip_all",
         "--port", "27017"
-      ] 
+      ]
     healthcheck:
       test: [ "CMD", "mongosh", "--host", "localhost:27017", "--eval", "db.adminCommand('ping')" ]
       interval: 5s
@@ -150,7 +150,7 @@ services:
     volumes:
       - configSrv1_data:/data/db
     networks:
-      - mongo-network            
+      - mongo-network
 
   mongos1:
     container_name: mongos1
@@ -158,7 +158,7 @@ services:
     command:
       [
         "mongos",
-        "--configdb", 
+        "--configdb",
         "config_server/configSrv1:27017",
         "--bind_ip_all",
         "--port",
@@ -176,6 +176,21 @@ services:
     networks:
       - mongo-network
 
+  redis_mongo:
+    image: "redis:latest"
+    container_name: redis_mongo
+    volumes:
+      - redis_1_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      - mongo-network
+    restart: always
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      start_period: 10s
+
   pymongo_api:
     container_name: pymongo_api
     build: 
@@ -192,6 +207,7 @@ services:
     environment:
       MONGODB_URL: "mongodb://mongos1"
       MONGODB_DATABASE_NAME: "somedb"
+      REDIS_URL: "redis://redis_mongo"
 
 
 volumes:
@@ -203,6 +219,7 @@ volumes:
   data2_c:
   configSrv1_data:
   mongos1_data:
+  redis_1_data:
   
 networks:
   mongo-network:
